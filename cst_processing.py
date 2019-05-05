@@ -5,32 +5,17 @@ import numpy as np
 import numba as nb
 import pyssht
 
-try:
-    import ssht_numba as sshtn
+@nb.njit
+def ssht_power_spectrum(f_lm):
+    L = int(np.sqrt(f_lm.size))
+    C_l = np.zeros(L)
+    for el in range(L):
+        for m in range(-el, el+1):
+            ind = el*el + el + m # equivalent to pyssht.elm2ind(el, m)
+            C_l[el] += np.abs(f_lm[ind])**2.
+        C_l[el] /= (2*el +1)
+    return C_l
 
-    @nb.njit
-    def ssht_power_spectrum(f_lm):
-        L = int(np.sqrt(f_lm.size))
-        C_l = np.zeros(L)
-        for el in range(L):
-            for m in range(-el, el+1):
-                ind = sshtn.elm2ind(el,m)
-                C_l[el] += np.abs(f_lm[ind])**2.
-            C_l[el] /= (2*el +1)
-        return C_l
-        
-except ImportError:
-    print("Couldn't import ssht_numba, defining slower function.")
-    # can be made faster even without numba
-    def ssht_power_spectrum(f_lm):
-        L = int(np.sqrt(f_lm.size))
-        C_l = np.zeros(L)
-        for el in range(L):
-            for m in range(-el, el+1):
-                ind = pyssht.elm2ind(el,m)
-                C_l[el] += np.abs(f_lm[ind])**2.
-            C_l[el] /= (2*el +1)
-        return C_l
 
 def reflected_extension(Elm_in):
     Nfreq, Nmode = Elm_in.shape

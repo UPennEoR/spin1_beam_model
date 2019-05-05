@@ -86,8 +86,8 @@ class AntennaFarFieldResponse(object):
 
         zen_Eabs = np.zeros(nu_axis.size)
         for ii in range(nu_axis.size):
-            zen_pos1_E = sshtn.ssht_numba_series_eval(self.pos1_Elm[ii], 1, self.L_model, delta, np.array([zth]), np.array([zph]))
-            zen_neg1_E = sshtn.ssht_numba_series_eval(self.neg1_Elm[ii], -1, self.L_model, delta, np.array([zth]), np.array([zph]))
+            zen_pos1_E = ssht_numba_series_eval(self.pos1_Elm[ii], 1, self.L_model, delta, np.array([zth]), np.array([zph]))
+            zen_neg1_E = ssht_numba_series_eval(self.neg1_Elm[ii], -1, self.L_model, delta, np.array([zth]), np.array([zph]))
 
             zen_Et = (zen_pos1_E + zen_neg1_E)/np.sqrt(2.)
             zen_Ep = (zen_pos1_E - zen_neg1_E)*(-1j)/np.sqrt(2.)
@@ -111,8 +111,8 @@ class AntennaFarFieldResponse(object):
 
             zen_rEabs = np.zeros(nu_axis.size)
             for ii in range(nu_axis.size):
-                zen_pos1_rE = sshtn.ssht_numba_series_eval(self.pos1_rElm[ii], 1, self.L_model, delta, np.array([zth]), np.array([zph]))
-                zen_neg1_rE = sshtn.ssht_numba_series_eval(self.neg1_rElm[ii], -1, self.L_model, delta, np.array([zth]), np.array([zph]))
+                zen_pos1_rE = ssht_numba_series_eval(self.pos1_rElm[ii], 1, self.L_model, delta, np.array([zth]), np.array([zph]))
+                zen_neg1_rE = ssht_numba_series_eval(self.neg1_rElm[ii], -1, self.L_model, delta, np.array([zth]), np.array([zph]))
 
                 zen_rEt = (zen_pos1_rE + zen_neg1_rE)/np.sqrt(2.)
                 zen_rEp = (zen_pos1_rE - zen_neg1_rE)*(-1j)/np.sqrt(2.)
