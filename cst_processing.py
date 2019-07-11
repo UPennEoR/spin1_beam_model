@@ -152,7 +152,7 @@ class CSTDataProcessor(object):
         for ii in range(Nft_mode):
             for ell in range(self.L_data):
                 m = np.arange(-ell, ell+1)
-                indices = sshtn.elm2ind(ell, m)
+                indices = pyssht.elm2ind(ell, m)
                 pos1_Elm_ft_s[ii, indices] *= mode_filter[ii,ell]
                 neg1_Elm_ft_s[ii, indices] *= mode_filter[ii,ell]
 
