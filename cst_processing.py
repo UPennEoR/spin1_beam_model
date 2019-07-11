@@ -16,6 +16,9 @@ def ssht_power_spectrum(f_lm):
         C_l[el] /= (2*el +1)
     return C_l
 
+def elm2ind(el, m):
+    """Same as pyssht.elm2ind, but will broadcast numpy arrays"""
+    return el * el + el + m
 
 def reflected_extension(Elm_in):
     Nfreq, Nmode = Elm_in.shape
@@ -152,7 +155,7 @@ class CSTDataProcessor(object):
         for ii in range(Nft_mode):
             for ell in range(self.L_data):
                 m = np.arange(-ell, ell+1)
-                indices = pyssht.elm2ind(ell, m)
+                indices = elm2ind(ell, m)
                 pos1_Elm_ft_s[ii, indices] *= mode_filter[ii,ell]
                 neg1_Elm_ft_s[ii, indices] *= mode_filter[ii,ell]
 
