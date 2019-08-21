@@ -5,7 +5,7 @@ import numpy as np
 import numba as nb
 import pyssht
 
-from scipy.interpolate import RectBivariateSpline, interp1d
+from scipy.interpolate import RectBivariateSpline, interp1d, Rbf
 
 class AntennaFarFieldResponse(object):
     """
@@ -62,23 +62,76 @@ class AntennaFarFieldResponse(object):
 
         self.dual_feed = True
 
-    def interpolate_spatial_harmonics_spectra(self, nu_axis):
+    def interpolate_spatial_harmonics_spectra(self, nu_axis, interp_method='sinc_rbf'):
         """
         Evaluates the spatial harmonics at the frequency points specified
         (in MHz) by nu_axis.
+
+        interp_method:
+            -'sinc_rbf' is a radial basis function interpolation using a
+             sinc kernel with length scale set by the sampling rate of the input data.
+             This effectively assumes that the input data is Nyquist sampled, and aims
+             to avoid both 1) additional smoothing beyond what was done in the initial
+             processing to derive the model data, or 2) extrapolating beyond what
+             the input data supports.
+
+            -'cubic_spline' uses a cubic spline.
+
+        The fits are always over the full input frequency band, even if `nu_axis`
+        is only covers a small subset of `freq_nodes`.
         """
         self.nu_axis = nu_axis
 
-        re_pos1_Elm_spl = interp1d(self.freq_nodes, self.pos1_Elm_samples.real, kind='cubic', axis=0)
-        im_pos1_Elm_spl = interp1d(self.freq_nodes, self.pos1_Elm_samples.imag, kind='cubic', axis=0)
+        if interp_method == 'sinc_rbf':
 
-        self.pos1_Elm = re_pos1_Elm_spl(nu_axis) + 1j*im_pos1_Elm_spl(nu_axis)
+            # harmonic mean of input sample spacing
+            # delta_nu_in = 1./np.mean(1./np.diff(self.freq_nodes))
+            delta_nu_in = np.diff(self.freq_nodes)[0]
+            print 'delta_nu_in is', delta_nu_in
 
-        ###
-        re_neg1_Elm_spl = interp1d(self.freq_nodes, self.neg1_Elm_samples.real, kind='cubic', axis=0)
-        im_neg1_Elm_spl = interp1d(self.freq_nodes, self.neg1_Elm_samples.imag, kind='cubic', axis=0)
+            def sinc_kernel(self, r):
+                tau_c = 1./(2*self.epsilon)
 
-        self.neg1_Elm = re_neg1_Elm_spl(nu_axis) + 1j*im_neg1_Elm_spl(nu_axis)
+                r = np.where(r == 0, 1e-20, r)
+                y = 2*np.pi*tau_c*r
+                kernel = np.sin(y)/y
+                return kernel
+
+            def rbf_obj(data):
+                rbf = Rbf(self.freq_nodes, data,
+                        function=sinc_kernel,
+                        epsilon=delta_nu_in,
+                        smooth=0.)
+                return rbf
+
+            self.pos1_Elm = np.zeros((nu_axis.size, self.L_model**2), dtype=np.complex)
+            self.neg1_Elm = np.zeros((nu_axis.size, self.L_model**2), dtype=np.complex)
+
+            for ii in range(self.L_model**2):
+                re_pos1_Elm_rbf = rbf_obj(self.pos1_Elm_samples[:,ii].real)
+                im_pos1_Elm_rbf = rbf_obj(self.pos1_Elm_samples[:,ii].imag)
+
+                self.pos1_Elm[:,ii] = re_pos1_Elm_rbf(nu_axis) + 1j*im_pos1_Elm_rbf(nu_axis)
+
+                re_neg1_Elm_rbf = rbf_obj(self.neg1_Elm_samples[:,ii].real)
+                im_neg1_Elm_rbf = rbf_obj(self.neg1_Elm_samples[:,ii].imag)
+
+                self.neg1_Elm[:,ii] = re_neg1_Elm_rbf(nu_axis) + 1j*im_neg1_Elm_rbf(nu_axis)
+
+        elif interp_method == 'cubic_spline':
+
+            re_pos1_Elm_spl = interp1d(self.freq_nodes, self.pos1_Elm_samples.real, kind='cubic', axis=0)
+            im_pos1_Elm_spl = interp1d(self.freq_nodes, self.pos1_Elm_samples.imag, kind='cubic', axis=0)
+
+            self.pos1_Elm = re_pos1_Elm_spl(nu_axis) + 1j*im_pos1_Elm_spl(nu_axis)
+
+            ###
+            re_neg1_Elm_spl = interp1d(self.freq_nodes, self.neg1_Elm_samples.real, kind='cubic', axis=0)
+            im_neg1_Elm_spl = interp1d(self.freq_nodes, self.neg1_Elm_samples.imag, kind='cubic', axis=0)
+
+            self.neg1_Elm = re_neg1_Elm_spl(nu_axis) + 1j*im_neg1_Elm_spl(nu_axis)
+        else:
+            raise ValueError("interp_method must be 'sinc_rbf' or 'cubic_spline'")
 
         zth = self.zenith_theta
         zph = self.zenith_phi
@@ -98,16 +151,37 @@ class AntennaFarFieldResponse(object):
 
         if self.dual_feed == True:
 
-            re_pos1_rElm_spl = interp1d(self.freq_nodes, self.pos1_rElm_samples.real, kind='cubic', axis=0)
-            im_pos1_rElm_spl = interp1d(self.freq_nodes, self.pos1_rElm_samples.imag, kind='cubic', axis=0)
+            if interp_method == 'sinc_rbf':
 
-            self.pos1_rElm = re_pos1_rElm_spl(nu_axis) + 1j*im_pos1_rElm_spl(nu_axis)
+                self.pos1_rElm = np.zeros((nu_axis.size, self.L_model**2), dtype=np.complex)
+                self.neg1_rElm = np.zeros((nu_axis.size, self.L_model**2), dtype=np.complex)
 
-            ###
-            re_neg1_rElm_spl = interp1d(self.freq_nodes, self.neg1_rElm_samples.real, kind='cubic', axis=0)
-            im_neg1_rElm_spl = interp1d(self.freq_nodes, self.neg1_rElm_samples.imag, kind='cubic', axis=0)
+                for ii in range(self.L_model**2):
+                    re_pos1_rElm_rbf = rbf_obj(self.pos1_rElm_samples[:,ii].real)
+                    im_pos1_rElm_rbf = rbf_obj(self.pos1_rElm_samples[:,ii].imag)
 
-            self.neg1_rElm = re_neg1_rElm_spl(nu_axis) + 1j*im_neg1_rElm_spl(nu_axis)
+                    self.pos1_rElm[:,ii] = re_pos1_rElm_rbf(nu_axis) + 1j*im_pos1_rElm_rbf(nu_axis)
+
+                    re_neg1_rElm_rbf = rbf_obj(self.neg1_rElm_samples[:,ii].real)
+                    im_neg1_rElm_rbf = rbf_obj(self.neg1_rElm_samples[:,ii].imag)
+
+                    self.neg1_rElm[:,ii] = re_neg1_rElm_rbf(nu_axis) + 1j*im_neg1_rElm_rbf(nu_axis)
+
+            elif interp_method == 'cubic_spline':
+
+                re_pos1_rElm_spl = interp1d(self.freq_nodes, self.pos1_rElm_samples.real, kind='cubic', axis=0)
+                im_pos1_rElm_spl = interp1d(self.freq_nodes, self.pos1_rElm_samples.imag, kind='cubic', axis=0)
+
+                self.pos1_rElm = re_pos1_rElm_spl(nu_axis) + 1j*im_pos1_rElm_spl(nu_axis)
+
+                ###
+                re_neg1_rElm_spl = interp1d(self.freq_nodes, self.neg1_rElm_samples.real, kind='cubic', axis=0)
+                im_neg1_rElm_spl = interp1d(self.freq_nodes, self.neg1_rElm_samples.imag, kind='cubic', axis=0)
+
+                self.neg1_rElm = re_neg1_rElm_spl(nu_axis) + 1j*im_neg1_rElm_spl(nu_axis)
+
+            else:
+                raise ValueError("interp_method must be 'sinc_rbf' or 'cubic_spline'")
 
             zen_rEabs = np.zeros(nu_axis.size)
             for ii in range(nu_axis.size):
@@ -121,7 +195,7 @@ class AntennaFarFieldResponse(object):
             self.pos1_rElm /= zen_rEabs[:,None]
             self.neg1_rElm /= zen_rEabs[:,None]
 
-    def compute_spatial_spline_approximations(self, nu_axis, L_synth='model'):
+    def compute_spatial_spline_approximations(self, nu_axis, L_synth='model', interp_method='sinc_rbf'):
         """
         Compute a 2D cubic spline approximation of the elements of the components
         of the Jones matrix at each specified frequency.
@@ -136,7 +210,7 @@ class AntennaFarFieldResponse(object):
         if self.dual_feed is False:
             raise ValueError('Only data for a single feed is set, this method requires data for dual feeds.')
 
-        self.interpolate_spatial_harmonics_spectra(nu_axis)
+        self.interpolate_spatial_harmonics_spectra(nu_axis, interp_method=interp_method)
 
         if L_synth == 'model':
             L_synth = self.L_model
