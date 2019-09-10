@@ -2,4 +2,4 @@
 Contributors
 ============
 
-* Steven Murray <steven.murray@curtin.edu.au>
+* Steven Murray <steven.g.murray@asu.edu>
