@@ -3,7 +3,7 @@ import os
 import h5py
 import numba as nb
 import numpy as np
-import pyssht
+import ssht_numba as sshtn
 
 
 @nb.njit
@@ -12,7 +12,7 @@ def ssht_power_spectrum(f_lm):
     C_l = np.zeros(L)
     for el in range(L):
         for m in range(-el, el + 1):
-            ind = el * el + el + m  # equivalent to pyssht.elm2ind(el, m)
+            ind = el * el + el + m
             C_l[el] += np.abs(f_lm[ind]) ** 2.0
         C_l[el] /= 2 * el + 1
     return C_l
@@ -111,7 +111,7 @@ class CSTDataProcessor(object):
             (self.Nfreq, self.L_data ** 2), dtype=np.complex128
         )
         self.zenith_Eabs = np.zeros(self.Nfreq, dtype=np.float64)
-        pyssht.generate_dl(np.pi / 2.0, self.L_data)
+        sshtn.generate_dl(np.pi / 2.0, self.L_data)
 
         for ii in range(self.Nfreq):
             data = np.loadtxt(self.data_files[ii], skiprows=2)
@@ -132,12 +132,11 @@ class CSTDataProcessor(object):
             pos1_E = (Et + 1j * Ep) / np.sqrt(2.0)
             neg1_E = (Et - 1j * Ep) / np.sqrt(2.0)
 
-            pos1_Elm = pyssht.forward(
-                pos1_E, self.L_data, Spin=1, Method="MWSS", Reality=False
-            )
-            neg1_Elm = pyssht.forward(
-                neg1_E, self.L_data, Spin=-1, Method="MWSS", Reality=False
-            )
+            pos1_Elm = np.empty([self.L_data * self.L_data], dtype=complex)
+            sshtn.mw_forward_sov_conv_sym_ss(pos1_E, self.L_data, s=1, f=pos1_Elm)
+
+            neg1_Elm = np.empty([self.L_data * self.L_data], dtype=complex)
+            sshtn.mw_forward_sov_conv_sym_ss(neg1_E, self.L_data, s=-1, f=neg1_Elm)
 
             self.pos1_Elm_nodes[ii] = pos1_Elm
             self.neg1_Elm_nodes[ii] = neg1_Elm
