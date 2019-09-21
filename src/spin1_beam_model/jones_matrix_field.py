@@ -1,7 +1,7 @@
 import h5py
 import numba as nb
 import numpy as np
-import ssht_numba as sshtn
+import pyssht
 from scipy.interpolate import Rbf, RectBivariateSpline, interp1d
 
 
@@ -54,7 +54,7 @@ class AntennaFarFieldResponse:
 
         rotation_operator = np.zeros(self.L_model ** 2, dtype=np.complex128)
         for ii in range(rotation_operator.size):
-            el, m = sshtn.ind2elm(ii)
+            el, m = pyssht.ind2elm(ii)
             arg = m * rot_angle
             rotation_operator[ii] = np.cos(arg) - 1j * np.sin(arg)
 
@@ -155,7 +155,7 @@ class AntennaFarFieldResponse:
 
         zth = self.zenith_theta
         zph = self.zenith_phi
-        delta = sshtn.generate_dl(np.pi / 2.0, self.L_model)
+        delta = pyssht.generate_dl(np.pi / 2.0, self.L_model)
 
         zen_Eabs = np.zeros(nu_axis.size)
         for ii in range(nu_axis.size):
@@ -294,7 +294,9 @@ class AntennaFarFieldResponse:
                 "of the model (L_synth > L_model)."
             )
 
-        theta_axis, phi_axis = sshtn.mwss_sample_positions(L_synth)
+        theta_axis, phi_axis = pyssht.sample_positions(
+            L_synth, Method="MWSS", Grid=False
+        )
         mu_axis = np.cos(theta_axis)
 
         mu_axis_flip = np.flipud(mu_axis)
@@ -336,11 +338,12 @@ class AntennaFarFieldResponse:
             pos1_Elm_pad = pad_Elm(pos1_Elm, L_synth)
             neg1_Elm_pad = pad_Elm(neg1_Elm, L_synth)
 
-            pos1_E = np.empty([L_synth + 1, 2 * L_synth], dtype=np.complex)
-            sshtn.mw_inverse_sov_sym_ss(pos1_Elm_pad, L_synth, s=1, f=pos1_E)
-
-            neg1_E = np.empty([L_synth + 1, 2 * L_synth], dtype=np.complex)
-            sshtn.mw_inverse_sov_sym_ss(neg1_Elm_pad, L_synth, s=1, f=neg1_E)
+            pos1_E = pyssht.inverse(
+                pos1_Elm_pad, L_synth, Spin=1, Method="MWSS", Reality=False
+            )
+            neg1_E = pyssht.inverse(
+                neg1_Elm_pad, L_synth, Spin=-1, Method="MWSS", Reality=False
+            )
 
             Et = (pos1_E + neg1_E) / np.sqrt(2.0)
             Ep = (pos1_E - neg1_E) * (-1j) / np.sqrt(2.0)
