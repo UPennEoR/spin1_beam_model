@@ -1,6 +1,7 @@
 import h5py
 import numba as nb
 import numpy as np
+import pyssht
 import ssht_numba as sshtn
 from scipy.interpolate import Rbf, RectBivariateSpline, interp1d
 
