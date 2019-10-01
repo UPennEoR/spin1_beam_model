@@ -135,8 +135,8 @@ class CSTDataProcessor(object):
             pos1_Elm = np.empty(self.L_data * self.L_data, dtype=np.complex128)
             sshtn.mw_forward_sov_conv_sym_ss(pos1_E, self.L_data, 1, pos1_Elm)
 
-            neg1_elm = np.empty(self.L_data * self.L_data, dtype=np.complex128)
-            sshtn.mw_forward_sov_conv_sym_ss(neg1_e, self.L_data, -1, neg1_Elm)
+            neg1_Elm = np.empty(self.L_data * self.L_data, dtype=np.complex128)
+            sshtn.mw_forward_sov_conv_sym_ss(neg1_E, self.L_data, -1, neg1_Elm)
 
             # pos1_Elm = pyssht.forward(
             #     pos1_E, self.L_data, Spin=1, Method="MWSS", Reality=False
