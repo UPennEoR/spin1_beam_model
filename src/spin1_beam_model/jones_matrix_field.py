@@ -294,7 +294,7 @@ class AntennaFarFieldResponse:
                 "of the model (L_synth > L_model)."
             )
 
-        theta_axis, phi_axis = sshtn.sample_positions(L_synth)
+        theta_axis, phi_axis = sshtn.mwss_sample_positions(L_synth)
 
         mu_axis = np.cos(theta_axis)
 
@@ -340,7 +340,7 @@ class AntennaFarFieldResponse:
             pos1_E = np.empty(sshtn.mwss_sample_shape(L_synth), dtype=np.complex128)
             sshtn.mw_inverse_sov_sym_ss(pos1_Elm_pad, L_synth, 1, pos1_E)
 
-            neg1_E = np.empty(sstn.mwss_sample_shape(L_synth), dtype=np.complex128)
+            neg1_E = np.empty(sshtn.mwss_sample_shape(L_synth), dtype=np.complex128)
             sshtn.mw_inverse_sov_sym_ss(neg1_Elm_pad, L_synth, -1, neg1_E)
 
             Et = (pos1_E + neg1_E) / np.sqrt(2.0)
@@ -464,7 +464,7 @@ class AntennaFarFieldResponse:
 
 @nb.njit
 def dl_m(el, s, beta, delta):
-    L = (delta.shape[2] + 1) / 2
+    L = int((delta.shape[2] + 1) / 2)
     mp = np.arange(-el, el + 1)
 
     #     k = np.exp(1j*mp*beta)
