@@ -15,12 +15,12 @@ class AntennaFarFieldResponse:
 
     def __init__(self, spin1_data_file_path):
         with h5py.File(spin1_data_file_path, "r") as h5f:
-            self.pos1_Elm_samples = h5f["pos1_Elm"].value
-            self.neg1_Elm_samples = h5f["neg1_Elm"].value
-            self.freq_nodes = h5f["frequencies"].value
-            self.L_model = h5f["spatial_bandlimit"].value
-            self.zenith_theta = h5f["zenith_theta"].value
-            self.zenith_phi = h5f["zenith_phi"].value
+            self.pos1_Elm_samples = h5f["pos1_Elm"][()]
+            self.neg1_Elm_samples = h5f["neg1_Elm"][()]
+            self.freq_nodes = h5f["frequencies"][()]
+            self.L_model = h5f["spatial_bandlimit"][()]
+            self.zenith_theta = h5f["zenith_theta"][()]
+            self.zenith_phi = h5f["zenith_phi"][()]
 
         self.dual_feed = False
 
